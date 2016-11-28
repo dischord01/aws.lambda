@@ -1,0 +1,6 @@
+# file: roles/aws.lambda/vars/main.yml
+---
+
+lambda_function_name: "Controller"
+
+playbook_path: "{{ lookup('env','PWD') }}/aws.lambda"

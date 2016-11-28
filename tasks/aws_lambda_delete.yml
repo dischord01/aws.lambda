@@ -1,0 +1,9 @@
+---
+
+# Lambda function deletion
+- name: Delete Lambda function {{ lambda_function_name }}
+  lambda:
+    name: '{{ item }}'
+    state: absent
+  with_items:
+    - "{{lambda_function_name }}"

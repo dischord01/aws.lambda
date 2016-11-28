@@ -1,0 +1,8 @@
+# file: roles/aws.lambda/tasks/main.yml
+---
+
+- include: aws_lambda_create.yml
+  tags: aws_lambda_create
+
+# - include: aws_lambda_delete.yml
+#   tags: aws_lambda_delete 

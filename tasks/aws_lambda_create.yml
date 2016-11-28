@@ -1,0 +1,64 @@
+---
+
+# IAM Assume Role 
+- name: Create IAM role with custom trust relationship
+  iam:
+    iam_type: role
+    name: "{{ lambda_function_name }}LambdaRole"
+    state: present
+    trust_policy:
+      Version: '2012-10-17'
+      Statement:
+      - Action: sts:AssumeRole
+        Effect: Allow
+        Principal:
+          Service: lambda.amazonaws.com
+  register: Controller_Assume_Role
+
+- debug: var=Controller_Assume_Role
+   
+# IAM Policy
+- name: IAM Policy for Lambda Functions
+  iam_policy:
+    iam_type: role
+    iam_name: "{{ lambda_function_name }}LambdaRole"
+    policy_name: "{{ lambda_function_name }}Policy"
+    policy_json:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: MyStatementId
+          Effect: Allow
+          Action:
+          - ec2:DescribeInstances
+          - ec2:StopInstances
+          Resource:
+          - "*"
+    state: present
+  register: Controller_Policy
+
+# - debug: var=Controller_Policy
+
+- name: Get AWS account number
+  shell: aws sts get-caller-identity --output text --query 'Account'
+  register: aws_account_number
+
+- set_fact: account_number="{{aws_account_number.stdout}}"
+
+- name: Pause 
+  pause: seconds=10
+
+# Lambda functions
+- name: Deploy {{ lambda_function_name }} Lambda Function
+  lambda:
+    name: "{{ lambda_function_name }}"
+    state: present
+    zip_file: "{{ item.zip_file }}"
+    runtime: "nodejs4.3"
+    handler: "index.handler"
+    role: "arn:aws:iam::{{ account_number }}:role/{{ lambda_function_name }}LambdaRole"
+  with_items:
+    - { name: '{{ lambda_function_name }}', zip_file: "{{ playbook_path }}/templates/{{ lambda_function_name }}.zip" }
+
+# Help Message
+- debug: msg="Your lambda function is called {{ lambda_function_name }}, make sure you add a AWS tag with key-value StopGroup={{ lambda_function_name }} to all the instances you want to stop at the provided schedule."
+- debug: msg="Navigate to Event sources and choose for the Scheduled Event. After naming your event, you can provide the following schedule expression. cron(15 17 ? * MON-FRI *)"
